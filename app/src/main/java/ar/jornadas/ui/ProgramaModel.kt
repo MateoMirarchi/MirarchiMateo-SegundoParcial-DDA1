@@ -27,11 +27,17 @@ val ProgramaUi.charlas: List<Charla>
         else -> emptyList()
     }
 
-class ProgramaModel(app: Application) : AndroidViewModel(app) {
+class ProgramaModel(app: Application, private val guardado: SavedStateHandle) : AndroidViewModel(app) {
     private val servicios = Servicios.obtener(app)
     val mesa = servicios.mesa
     private val repo = servicios.agenda
-    val dia = MutableStateFlow(0)
+
+    // Filtros en estado de instancia guardado: sobreviven a rotación y a muerte del proceso,
+    // pero una tarea nueva arranca sin filtros (no se persisten en Room ni DataStore).
+    val dia: StateFlow<Int> = guardado.getStateFlow("dia", 0)
+    val tema: StateFlow<String> = guardado.getStateFlow("tema", "Todos")
+    fun elegirDia(valor: Int) { guardado["dia"] = valor }
+    fun elegirTema(valor: String) { guardado["tema"] = valor }
 
     val ui: StateFlow<ProgramaUi> = combine(repo.programa, repo.hayEdicion, repo.cargando, repo.falla) {
             charlas, hayEdicion, cargando, falla ->

@@ -14,10 +14,10 @@ import ar.jornadas.data.Charla
 @Composable
 fun Catalogo(model: ProgramaModel, ui: ProgramaUi, abrir: (String) -> Unit) {
     val dia by model.dia.collectAsStateWithLifecycle()
-    var tema by remember { mutableStateOf("Todos") }
-    Selector(listOf("Ambos días", "Día 1", "Día 2"), dia) { model.dia.value = it }
+    val tema by model.tema.collectAsStateWithLifecycle()
+    Selector(listOf("Ambos días", "Día 1", "Día 2"), dia) { model.elegirDia(it) }
     val temas = listOf("Todos", "Android", "Datos", "Calidad")
-    Selector(temas, temas.indexOf(tema)) { tema = temas[it] }
+    Selector(temas, temas.indexOf(tema)) { model.elegirTema(temas[it]) }
     TextButton(onClick = model::recargar) { Text("Actualizar") }
     when (ui) {
         ProgramaUi.Cargando -> LinearProgressIndicator(Modifier.fillMaxWidth())
