@@ -28,14 +28,12 @@ val ProgramaUi.charlas: List<Charla>
     }
 
 class ProgramaModel(app: Application) : AndroidViewModel(app) {
-    private val servicios = Servicios(app)
+    private val servicios = Servicios.obtener(app)
     val mesa = servicios.mesa
     private val repo = servicios.agenda
     val dia = MutableStateFlow(0)
-    private val cargando = MutableStateFlow(false)
-    private val falla = MutableStateFlow(false)
 
-    val ui: StateFlow<ProgramaUi> = combine(repo.programa, repo.hayEdicion, cargando, falla) {
+    val ui: StateFlow<ProgramaUi> = combine(repo.programa, repo.hayEdicion, repo.cargando, repo.falla) {
             charlas, hayEdicion, cargando, falla ->
         when {
             hayEdicion && falla -> ProgramaUi.Guardados(charlas, cargando)
@@ -45,16 +43,11 @@ class ProgramaModel(app: Application) : AndroidViewModel(app) {
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, ProgramaUi.Cargando)
 
-    fun recargar() {
-        viewModelScope.launch {
-            cargando.value = true
-            try {
-                falla.value = repo.sincronizar() == ResultadoSync.Falla
-            } finally {
-                cargando.value = false
-            }
-        }
-    }
+    /** Carga automática: una sola vez por proceso (la bandera vive en el repositorio). */
+    fun cargaAutomatica() = repo.cargaAutomatica()
+
+    /** Actualización explícita (Actualizar / Reintentar). */
+    fun recargar() = repo.actualizar()
 
     fun marcar(id: String) { viewModelScope.launch { repo.cambiarFavorita(id) } }
 }
