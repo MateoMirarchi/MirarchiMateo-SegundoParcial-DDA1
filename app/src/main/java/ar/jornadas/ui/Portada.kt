@@ -35,13 +35,19 @@ fun Portada(model: ProgramaModel) {
                 Spacer(Modifier.height(8.dp))
                 Text("Jornadas del Sur", style = MaterialTheme.typography.labelLarge)
                 if (ui is ProgramaUi.Guardados) {
-                    Text("Sin conexión: se muestran los datos guardados de la última edición.",
+                    Text("No se pudo actualizar el programa: se muestran los datos guardados de la última edición.",
                         color = MaterialTheme.colorScheme.error)
                 }
                 if (detalle != null) {
                     TextButton(onClick = { detalle = null }) { Text("Volver") }
                     val ficha = charlas.find { it.id == detalle }
-                    if (ficha != null) Column(Modifier.verticalScroll(rememberScrollState()),
+                    if (ficha == null) {
+                        if (ui is ProgramaUi.Datos || ui is ProgramaUi.Guardados) {
+                            Text("Esta charla ya no está en el programa.")
+                        } else {
+                            LinearProgressIndicator(Modifier.fillMaxWidth())
+                        }
+                    } else Column(Modifier.verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(ficha.titulo, style = MaterialTheme.typography.headlineMedium)
                         Text("Día ${ficha.dia} · ${ficha.hora} · ${ficha.sala}")

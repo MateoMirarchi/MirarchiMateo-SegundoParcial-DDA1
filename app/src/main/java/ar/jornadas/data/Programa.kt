@@ -38,10 +38,26 @@ abstract class CarteleraDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun guardarEdicion(edicion: Edicion)
 
-    /** Guarda el snapshot y registra la edición en una sola transacción. (La fusión por id llega en el pedido 42.) */
+    @Query("SELECT * FROM charlas")
+    abstract suspend fun leerTodas(): List<Charla>
+
+    @Query("DELETE FROM charlas WHERE id IN (:ids)")
+    abstract suspend fun borrar(ids: List<String>)
+
+    /**
+     * Fusiona el snapshot con lo local por id, en una sola transacción (si algo falla, queda la edición anterior):
+     * - las ausentes del snapshot se borran junto con su marca (si regresan, regresan sin marcar);
+     * - las existentes se actualizan conservando su marca;
+     * - las nuevas entran sin marcar.
+     * Las marcas se leen aquí, dentro de la transacción, así que respetan lo que el usuario cambió
+     * mientras la petición estaba en curso.
+     */
     @Transaction
     open suspend fun guardarSnapshot(fichas: List<Charla>) {
-        guardar(fichas)
+        val actuales = leerTodas().associate { it.id to it.favorita }
+        val vigentes = fichas.map { it.id }.toSet()
+        (actuales.keys - vigentes).chunked(500).forEach { borrar(it) }
+        guardar(fichas.map { it.copy(favorita = actuales[it.id] ?: false) })
         guardarEdicion(Edicion(1, System.currentTimeMillis()))
     }
 
